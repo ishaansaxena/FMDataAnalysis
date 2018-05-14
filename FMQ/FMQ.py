@@ -140,5 +140,6 @@ class FMQ:
             f_delta = distance.euclidean(q, r)
             similar.append([getattr(row, "UID"), getattr(row, "Name"), e_delta, f_delta])
         df = pandas.DataFrame(similar, columns=title)
-        df.sort_values(by=['e_delta', 'f_delta'], inplace=True)
+        df['delta'] = np.sqrt(df.e_delta * df.e_delta + df.f_delta * df.f_delta)
+        df.sort_values(by=['delta'], inplace=True)
         return df

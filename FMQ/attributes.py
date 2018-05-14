@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from dotmap import DotMap
 
 attributes_map = {
