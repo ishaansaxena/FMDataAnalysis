@@ -1,8 +1,12 @@
 #!/usr/bin/python
 
+from .abilities import abilities
 import pandas
+import numpy
 
 class FMQ:
+
+    abilities = abilities
 
     # Class constructor
     def __init__(self, url):
@@ -24,3 +28,5 @@ class FMQ:
 
     def head(self, n):
         return self.df.head(n)
+
+    
