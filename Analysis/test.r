@@ -52,5 +52,5 @@ getSimilarGoalkeepers <- function(uid, range) {
   }
   df
 }
-getSimilarPlayers(55063369, 4)[, 1:2]
+getSimilarPlayers(uid, 6)[, 1:2]
 getSimilarGoalkeepers(uidk, 3)[, 1:2]
