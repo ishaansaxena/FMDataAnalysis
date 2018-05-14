@@ -1,6 +1,6 @@
 from dotmap import DotMap
 
-abilities_map = {
+attributes_map = {
     "all": [
         "AerialAbility", "CommandOfArea", "Communication", "Eccentricity", "Handling",
         "Kicking", "OneOnOnes", "Reflexes", "RushingOut", "TendencyToPunch",
@@ -41,4 +41,4 @@ abilities_map = {
     ]
 }
 
-abilities = DotMap(abilities_map)
+attributes = DotMap(attributes_map)

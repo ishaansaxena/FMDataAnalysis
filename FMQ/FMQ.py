@@ -1,13 +1,13 @@
 #!/usr/bin/python
 
-from .abilities import abilities
+from .attributes import attributes
 from scipy.spatial import distance
 import numpy as np
 import pandas
 
 class FMQ:
 
-    abilities = abilities
+    attributes = attributes
     stddev = None
 
     ### Constructors
@@ -38,47 +38,55 @@ class FMQ:
     # Get player by UID
     def get_player_by_id(self, uid):
         df = self.df
+        # Return occurence when UID matches
         return df.loc[df["UID"] == uid]
 
     # Get players with name similar to
     def get_players_by_name(self, name):
         df = self.df
+        # Return all occurence where name is similar
         return df[df["Name"].str.contains(name, case=False)]
 
     # Get ability list
-    def get_ability_list(self):
-        return abilities.toDict()
+    def get_attr_list(self):
+        return attributes.toDict()
 
-    # Get players with abilities more than threshold: (k, v == ability, lower bound)
-    def filter_by_ability(self, *args, **kwargs):
+    # Get players with attributes more than threshold: (k, v == ability, lower bound)
+    def filter_by_attr(self, *args, **kwargs):
         df = self.df
+        # subset data with ability k at least of value v
         for k, v in kwargs.items():
             df = df.loc[df[k] >= v]
         return df
 
-    # Get player abilities in range
-    def get_abilities_in_range(self, uid, low, high):
+    # Get player attributes in range
+    def get_attr_in_range(self, uid, low, high):
         df = self.get_player_by_id(uid).select_dtypes(include=[np.number])
-        df = df[self.abilities.all + self.abilities.hidden]
+        df = df[self.attributes.all + self.attributes.hidden]
+        # Get series for a player
         r = df.squeeze()
+        # Return column values when in the given range
         return r.loc[r.between(low, high) == True]
 
     # Get ability average
-    def get_average_player_ability(self, uid):
+    def get_average_player_attr(self, uid):
         df = self.get_player_by_id(uid).select_dtypes(include=[np.number])
         avg = {}
-        for k, v in self.abilities.items():
+        # Get average values for each subclass
+        for k, v in self.attributes.items():
             m = df[v].mean(axis=1)
             avg[k] = m.iat[0]
         return avg
 
     # Euclidean distance
     def get_euclidean_distance(self, uid, vid):
+        # Get both players
         df = self.get_player_by_id(uid)
         to = self.get_player_by_id(vid)
         m = {}
         exclude = ["all", "footedness", "hidden"]
-        for k, v in self.abilities.items():
+        # For each subclass, calculate euclidean distance
+        for k, v in self.attributes.items():
             if k in exclude: continue
             q = df[v]
             r = to[v]
@@ -87,24 +95,50 @@ class FMQ:
         return m
 
     # Get players similar to current player (euclidean distance and stddev)
-    def get_similar_players(self, uid):
+    def get_similar_players(self, uid, factor=None):
         # OPTIMIZE: Improve execution time of this method
+
+        # Set factor to 2 by default
+        if factor is None:
+            factor = 2
         df = self.df
+
+        # Get player to compare with
         player = self.get_player_by_id(uid)
+        # Get threshold value for choosing attributes
+        threshold = self.get_average_player_attr(uid)['all']
+        # Choose all attributes above threshold value as critical
+        # critical_attributes = [
+            # col for col in self.get_attr_in_range(uid, threshold, 20).index
+            # if col in self.attributes.all()
+        # ]
+        critical_attr_e = [column for column in self.get_attr_in_range(uid, threshold, 20).index if column in self.attributes.all]
+        critical_attr_f = [column for column in self.get_attr_in_range(uid, 0, threshold - 1).index if column in self.attributes.all]
+
+        # Squeeze player into series
         player_series = player.squeeze()
-        threshold = self.get_average_player_ability(uid)['all']
-        critical_abilities = self.get_abilities_in_range(uid, threshold, 20)
-        for index in critical_abilities.index:
-            m = player_series.at[index]
-            s = 3 * self.stddev.at[index]
-            df = df.loc[df[index] >= m - s].loc[df[index] <= m + s]
-        euclidean = []
-        title = None
-        for player in df.itertuples():
-            vid = getattr(player, "UID")
-            name = getattr(player, "Name")
-            dist = self.get_euclidean_distance(uid, vid)
-            euclidean.append([vid, name] + list([v for k, v in dist.items()]))
-            if title == None:
-                title = ["UID", "Name"] + list([k for k, v in dist.items()])
-        return pandas.DataFrame(euclidean, columns=title)
+        # Get subset within one stddev of each critical attribute
+        for attr in critical_attr_e:
+            m = player_series.at[attr]
+            s = self.stddev.at[attr]
+            # if only_lower:
+            df = df.loc[df[attr] >= m - factor * s]
+            # else:
+                # df = df.loc[df[index] >= m - s].loc[df[index] <= m + s]
+
+        # Get similar players
+        similar = []
+        title = ["UID", "Name", "e_delta", "f_delta"]
+        for row in df.itertuples():
+            # Get distance e
+            q = player[critical_attr_e]
+            r = [getattr(row, attr) for attr in critical_attr_e]
+            e_delta = distance.euclidean(q, r)
+            # Get distance f
+            q = player[critical_attr_f]
+            r = [getattr(row, attr) for attr in critical_attr_f]
+            f_delta = distance.euclidean(q, r)
+            similar.append([getattr(row, "UID"), getattr(row, "Name"), e_delta, f_delta])
+        df = pandas.DataFrame(similar, columns=title)
+        df.sort_values(by=['e_delta', 'f_delta'], inplace=True)
+        return df
