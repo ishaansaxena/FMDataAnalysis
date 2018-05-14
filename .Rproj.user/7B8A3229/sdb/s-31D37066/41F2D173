@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "library(ClustOfVar)\nlibrary(cluster)\n\n# Choose columns for clustering\ndata <- abilities[, c(3:13)]\n\n\n# Cluster variables\n# Find data clusters\ntree <- hclustvar(data)\n\n# Plot cluster dendrogram\npng(file=\"ability_cluster.png\", res=128, width=3000, height=2000)\nplot(tree)\ndev.off()\n\n# Estimate number of clusters\nstab <- stability(tree, B=64)\nplot(stab)\n\n\n# Cluster respondants\n# Get distances for columns\nd <- dist(data, method = \"euclidian\")\n\n# K-means cluster\nkfit <- kmeans(d, 4)\nclusplot(as.matrix(d), kfit$cluster, color=T, shade=T, labels=2, lines=0)\n\n\n",
+    "created" : 1526272490365.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2869641404",
+    "id" : "41F2D173",
+    "lastKnownWriteTime" : 1526262817,
+    "last_content_update" : 1526262817,
+    "path" : "~/Envelope/Work/Data Science/Football Manager/Analysis/cluster.r",
+    "project_path" : "Analysis/cluster.r",
+    "properties" : {
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
