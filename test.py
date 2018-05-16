@@ -38,7 +38,7 @@ def test_model(mtuple):
     name, model = mtuple
 
     # Start processing model in thread X
-    print("Testing %s in Thread: %s" % (name, current_thread()))
+    print("Testing %s analysis in Thread: \t%s" % (name, current_thread()))
     start = time()
 
     # Fix for joblib issue
