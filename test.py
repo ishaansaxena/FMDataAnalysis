@@ -128,8 +128,8 @@ def main():
     # Start threads
     threadPool.map(test_model, models)
     # Wait for threads to finish
-    pool.close()
-    pool.join()
+    threadPool.close()
+    threadPool.join()
 
     # Compare model results visually
     fig = plt.figure()
