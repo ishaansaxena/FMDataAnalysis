@@ -18,13 +18,73 @@ from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.metrics import accuracy_score
 
+from multiprocessing import cpu_count
+from multiprocessing.dummy import Pool as ThreadPool
+from threading import Lock, current_thread
+
 from FMQ import FMQ
 from FMQ import positions
 from FMQ import attributes
 
+# Mutex
+mutex = Lock()
+
+# Model evaluation
+results = []
+names = []
+
+def test_model(mtuple):
+    # Get model name and model instance
+    name, model = mtuple
+
+    # Start processing model in thread X
+    print("Testing %s in Thread: %s" % (name, current_thread()))
+    start = time()
+
+    # Fix for joblib issue
+    # TODO: Find better fix
+    current_thread().name = 'MainThread'
+
+    # Train model with training data
+    try:
+        kfold = model_selection.KFold(n_splits=8, random_state=seed)
+        cv_results = model_selection.cross_val_score(
+            model, X_train, Y_train,
+            cv=kfold, scoring=scoring
+        )
+    except Exception as e:
+        # Print exception
+        print("Exception: %s at testModel(%s)" % (e, name))
+
+    # Logging Statistics
+    t = time() - start
+    result = "Complete training %s:\t%f (%f)\tin %s seconds" % (name, cv_results.mean(), cv_results.std(), t)
+
+    # Write results
+    mutex.acquire()
+    try:
+        results.append(cv_results)
+        names.append(name)
+        print(result)
+    except Exception as e:
+        # Print exception
+        print("Exception: %s at testModel(%s)" % (e, name))
+    finally:
+        mutex.release()
+
+    return None
 
 def main():
 
+    # Data subsets
+    global X_train, X_validation, Y_train, Y_validation
+
+    # Validation parameters
+    global validation_size
+    global seed
+    global scoring
+
+    # Load database
     print("Loading DB")
     f = FMQ.FMQ("dataset.csv")
 
@@ -46,8 +106,8 @@ def main():
     models.append(("SVC", SVC()))
 
     # Create predictors
-    X = df[a.all].values        # Abilities
-    Y = df["Position"].values   # Positions
+    X = df[a.goalkeeping].values    # Abilities
+    Y = df[p.GK].values.ravel()     # Positions
 
     # Validation parameters
     validation_size = 0.50
@@ -62,21 +122,14 @@ def main():
         random_state=seed
     )
 
-    # Model evaluation
-    results = []
-    names = []
-
-    for name, model in models:
-        print("Testing %s" % name)
-        kfold = model_selection.KFold(n_splits=10, random_state=seed)
-        cv_results = model_selection.cross_val_score(
-            model, X_train, Y_train,
-            cv=kfold, scoring=scoring
-        )
-        results.append(cv_results)
-        names.append(name)
-        result = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
-        print(result)
+    # Training process
+    numThreads = min([len(models), cpu_count()])
+    threadPool = ThreadPool(numThreads)
+    # Start threads
+    threadPool.map(test_model, models)
+    # Wait for threads to finish
+    pool.close()
+    pool.join()
 
     # Compare model results visually
     fig = plt.figure()
