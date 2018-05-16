@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from .attributes import attributes
+from .positions import positions
 from scipy.spatial import distance
 import numpy as np
 import pandas

@@ -3,6 +3,7 @@ library(cluster)
 
 # Choose columns for clustering
 data <- abilities[, c(3:13)]
+data <- positions[, c(3:17)]
 
 
 # Cluster variables
@@ -10,7 +11,7 @@ data <- abilities[, c(3:13)]
 tree <- hclustvar(data)
 
 # Plot cluster dendrogram
-png(file="ability_cluster.png", res=128, width=3000, height=2000)
+png(file="position_cluster.png", res=128, width=3000, height=2000)
 plot(tree)
 dev.off()
 

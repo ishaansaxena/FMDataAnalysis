@@ -1,46 +1,89 @@
 #!/usr/bin/python
 
-from scipy.spatial import distance
 from time import time
-from FMQ import FMQ
 import sys
+from scipy.spatial import distance
 import matplotlib.pylab as plt
 
+from sklearn import model_selection
+
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.naive_bayes import GaussianNB
+from sklearn.svm import SVC
+
+from sklearn.metrics import classification_report
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+
+from FMQ import FMQ
+from FMQ import positions
+from FMQ import attributes
+
+
 def main():
-    uid = int(sys.argv[1])
-    if len(sys.argv) > 2:
-        factor = float(sys.argv[2])
-    else:
-        factor = 2
+
+    print("Loading DB")
     f = FMQ.FMQ("dataset.csv")
-    start = time()
-    # f.get_player_by_id(uid)
-    # f.get_players_by_name('lionel')
-    # f.get_attr_list()
-    # f.filter_by_attr(Flair=19)
-    # f.get_attr_in_range(uid, 15, 20)
-    # f.get_average_player_attr(uid)
-    # f.get_euclidean_distance(uid, 18007344)
-    df = f.get_similar_players(uid, factor).head(10 + 1)
-    print(df)
-    #
-    # plt.scatter(df.e_delta, df.f_delta)
-    # plt.text(df.e_delta, df.f_delta, df.Name)
-    # plt.show()
-    labels = df.Name
-    x_data = df.e_delta
-    y_data = df.f_delta
-    plt.scatter(x_data, y_data)
-    for label, x, y in zip(labels, x_data, y_data):
-        plt.annotate(
-            label,
-            xy = (x, y),
-            xytext=(5, 0), textcoords="offset points",
-            ha='left', va='center',
+
+    # Get dataset
+    df = f.df
+    p = positions.positions
+    a = attributes.attributes
+
+    # Create position classes
+    df["Position"] = df[p.all].idxmax(axis=1)
+
+    # Import models
+    models = []
+    models.append(("LR", LogisticRegression()))
+    models.append(("CART", DecisionTreeClassifier()))
+    models.append(("KNN", KNeighborsClassifier()))
+    models.append(("LDA", LinearDiscriminantAnalysis()))
+    models.append(("NB", GaussianNB()))
+    models.append(("SVC", SVC()))
+
+    # Create predictors
+    X = df[a.all].values        # Abilities
+    Y = df["Position"].values   # Positions
+
+    # Validation parameters
+    validation_size = 0.50
+    seed = 7
+    scoring = "accuracy"
+
+    # Create sets
+    print("Creating Test/Validation Data")
+    X_train, X_validation, Y_train, Y_validation = model_selection.train_test_split(
+        X, Y,
+        test_size=validation_size,
+        random_state=seed
+    )
+
+    # Model evaluation
+    results = []
+    names = []
+
+    for name, model in models:
+        print("Testing %s" % name)
+        kfold = model_selection.KFold(n_splits=10, random_state=seed)
+        cv_results = model_selection.cross_val_score(
+            model, X_train, Y_train,
+            cv=kfold, scoring=scoring
         )
-    plt.xlim(0, 20)
-    plt.ylim(0, 20)
-    print(time() - start, "seconds")
+        results.append(cv_results)
+        names.append(name)
+        result = "%s: %f (%f)" % (name, cv_results.mean(), cv_results.std())
+        print(result)
+
+    # Compare model results visually
+    fig = plt.figure()
+    fig.suptitle('Algorithm Comparison')
+    ax = fig.add_subplot(111)
+    plt.boxplot(results)
+    ax.set_xticklabels(names)
     plt.show()
 
 if __name__ == '__main__':

@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
-from scipy.spatial import distance
 from time import time
-from FMQ import FMQ
+from scipy.spatial import distance
 import matplotlib.pylab as plt
+
+from FMQ import FMQ
+
 
 MAIN_HELP = """
     0:  Help
