@@ -106,8 +106,8 @@ def main():
     models.append(("SVC", SVC()))
 
     # Create predictors
-    X = df[a.goalkeeping].values    # Abilities
-    Y = df[p.GK].values.ravel()     # Positions
+    X = df[a.all].values                  # Abilities
+    Y = df["Position"].values.ravel()     # Positions
 
     # Validation parameters
     validation_size = 0.50
