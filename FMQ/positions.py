@@ -23,4 +23,6 @@ positions_map = {
     "ST": ["Striker"],
 }
 
+# TODO: Change position classification
+
 positions = DotMap(positions_map)
