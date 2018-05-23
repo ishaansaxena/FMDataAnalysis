@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 import numpy as np
 
 from sklearn import model_selection
@@ -52,11 +53,26 @@ def main():
 
     lda = LinearDiscriminantAnalysis()
     lda.fit(X_train, Y_train)
-    predictions = lda.predict(X_validation)
-    print("Validation results:")
-    print(accuracy_score(Y_validation, predictions))
-    print(confusion_matrix(Y_validation, predictions))
-    print(classification_report(Y_validation, predictions))
+
+    if len(sys.argv) > 1:
+        arg = sys.argv[1]
+        try:
+            arg = int(arg)
+            df = f.get_player_by_id(arg)
+        except:
+            df = f.get_players_by_name(arg)
+        finally:
+            y = df[a.all].values
+            df['Pre'] = lda.predict(y)
+            print(df[['Name', 'Pre']])
+            print(lda.predict_proba(y))
+
+    else:
+        predictions = lda.predict(X_validation)
+        print("Validation results:")
+        print(accuracy_score(Y_validation, predictions))
+        print(confusion_matrix(Y_validation, predictions))
+        print(classification_report(Y_validation, predictions))
 
 if __name__ == '__main__':
     main()
